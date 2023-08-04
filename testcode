@@ -1,0 +1,3 @@
+python build.py
+cp addon/bin/libeye-recognizer.linux.debug.arm64.so thirdparty/godot-4.0/cpp/test/demo/bin/
+godot
