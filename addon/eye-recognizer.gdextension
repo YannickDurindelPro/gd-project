@@ -1,0 +1,19 @@
+[configuration]
+
+entry_symbol = "gd_recognizer_init"
+
+[libraries]
+
+macos.debug = "bin/libeye-recognizer.macos.debug.framework"
+macos.release = "bin/libeye-recognizer.macos.release.framework"
+windows.debug.x86_64 = "bin/libeye-recognizer.windows.debug.x86_64.dll"
+windows.release.x86_64 = "bin/libeye-recognizer.windows.release.x86_64.dll"
+linux.debug.x86_64 = "bin/libeye-recognizer.linux.debug.x86_64.so"
+linux.release.x86_64 = "bin/libeye-recognizer.linux.release.x86_64.so"
+linux.debug.arm64 = "bin/libeye-recognizer.linux.debug.arm64.so"
+linux.release.arm64 = "bin/libeye-recognizer.linux.release.arm64.so"
+linux.debug.rv64 = "bin/libeye-recognizer.linux.debug.rv64.so"
+linux.release.rv64 = "bin/libeye-recognizer.linux.release.rv64.so"
+
+[dependencies]
+linux.debug.x86_64 = "bin/dependencies"
