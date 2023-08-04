@@ -1,0 +1,88 @@
+#include "phisical_camera.hpp"
+
+namespace EyeLights { namespace EyeRecognizer {
+    using namespace godot;
+    using namespace std;
+    using namespace cv;
+
+    PhisicalCamera::PhisicalCamera() {
+        image.instantiate();
+        texture.instantiate();
+    }
+
+    PhisicalCamera::~PhisicalCamera() {
+
+    }
+
+    void PhisicalCamera::_bind_methods() {
+        std::cout << "PhisicalCamera::_bind_methods()" << std::endl;
+        ClassDB::bind_method(D_METHOD("open"), &PhisicalCamera::open);
+    }
+
+    bool PhisicalCamera::open(int cameraId) {
+        // Load pre-trained model
+        std::string modelFile = "/home/eyelights/Documents/gd-eye-recognizer-master/src/camera/res10_300x300_ssd_iter_140000.caffemodel";
+        std::string configFile = "/home/eyelights/Documents/gd-eye-recognizer-master/src/camera/deploy.prototxt";
+        cv::dnn::Net net = cv::dnn::readNetFromCaffe(configFile, modelFile);
+        net.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
+        net.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA_FP16);
+
+        // Check if the model was loaded successfully
+        if (net.empty()) {
+            std::cout << "Error loading the model." << std::endl;
+            return -1;
+        }
+
+        // Open the camera
+        cv::VideoCapture cap(0); // Use '0' for the default camera, or specify the camera index.
+
+        // Check if the camera is opened successfully
+        if (!cap.isOpened()) {
+            std::cout << "Error opening the camera." << std::endl;
+            return -1;
+        }
+
+        while (true) {
+            // Read a frame from the camera
+            cv::Mat frame;
+            cap.read(frame);
+
+            // Perform face detection
+            cv::Mat blob = cv::dnn::blobFromImage(frame, 1.0, cv::Size(300, 300), cv::Scalar(104, 177, 123));
+            net.setInput(blob);
+            cv::Mat detections = net.forward();
+
+            // Process the detections and draw bounding boxes around faces
+            cv::Mat detectionsMat(detections.size[2], detections.size[3], CV_32F, detections.ptr<float>());
+            for (int i = 0; i < detectionsMat.rows; ++i) {
+                float confidence = detectionsMat.at<float>(i, 2);
+                if (confidence > 0.3) {  // You can adjust this threshold as needed
+                    int x1 = static_cast<int>(detectionsMat.at<float>(i, 3) * frame.cols);
+                    int y1 = static_cast<int>(detectionsMat.at<float>(i, 4) * frame.rows);
+                    int x2 = static_cast<int>(detectionsMat.at<float>(i, 5) * frame.cols);
+                    int y2 = static_cast<int>(detectionsMat.at<float>(i, 6) * frame.rows);
+                    cv::rectangle(frame, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(0, 255, 0), 2);
+                }
+            }
+
+            // Display the result
+            cv::imshow("Face Detection", frame);
+
+            // Check for the 'q' key to exit the loop
+            if (cv::waitKey(1) == 'q') {
+                break;
+            }
+        }
+
+        // Release the camera and close the window
+        cap.release();
+        cv::destroyAllWindows();
+
+        return 0;
+    }
+
+    void PhisicalCamera::shutdown() {
+        cv::destroyWindow("Camera");
+    }
+
+}}
