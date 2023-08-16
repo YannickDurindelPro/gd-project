@@ -23,19 +23,6 @@ namespace EyeLights { namespace EyeRecognizer {
         // Define the path to the directory containing the dataset images
         std::string datasetRootPath = "/home/eyelights/Documents/face_recognition/dataset/train-dataset/";
 
-        // Load pre-trained model
-        std::string modelFile = "/home/eyelights/Documents/face_detection/detect_godot/src/camera/res10_300x300_ssd_iter_140000.caffemodel";
-        std::string configFile = "/home/eyelights/Documents/face_detection/detect_godot/src/camera/deploy.prototxt";
-        cv::dnn::Net net = cv::dnn::readNetFromCaffe(configFile, modelFile);
-        net.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
-        net.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA_FP16);
-
-        // Check if the model was loaded successfully
-        if (net.empty()) {
-            std::cout << "Error loading the model." << std::endl;
-            return -1;
-        }
-
         // Read the dataset and labels
         std::vector<Mat> images;
         std::vector<int> index;
@@ -59,20 +46,12 @@ namespace EyeLights { namespace EyeRecognizer {
             // Loop through the images for each person
             for (int j = 0 ; j < 500 ; j++) { // Adjust the loop range based on the number of images
                 std::string imagePath = datasetRootPath + personName + "/" + personName + std::to_string(j) + ".jpg";
-                Mat image = imread(imagePath, 1);
+                Mat image = imread(imagePath, IMREAD_GRAYSCALE);
 
                 if (image.empty()) {
                     std::cerr << "Failed to read image: " << imagePath << std::endl;
                     continue;
                 }
-
-                Mat adjustedImage;
-                image.convertTo(adjustedImage, -1, 1, 0);  // Increase brightness by a factor of 1.5
-
-                // Resize the image to a consistent size (e.g., 100x100)
-                resize(image, image, Size(500, 500));
-                cvtColor(image, image, cv::COLOR_BGR2GRAY); // Convert to grayscale
-
 
                 // Add the image and corresponding label to the vectors
                 images.push_back(image);
@@ -82,14 +61,19 @@ namespace EyeLights { namespace EyeRecognizer {
             labelCounter++;
             
         }
+        std::cout << "images loaded" << std::endl;
 
         // Create and train the LBPHFaceRecognizer model
-        cv::Ptr<cv::face::LBPHFaceRecognizer> model = cv::face::LBPHFaceRecognizer::create(1,10,10,10,140);
+        cv::Ptr<cv::face::LBPHFaceRecognizer> model = cv::face::LBPHFaceRecognizer::create(1,8,8,8,80);
+        std::cout << "model created" << std::endl;
         model->train(images, index);
+        std::cout << "model trained" << std::endl;
 
         // Save the trained model
         std::string modelPath = "/home/eyelights/Documents/face_recognition/model.xml";
+        std::cout << "model path defined" << std::endl;
         model->save(modelPath);
+        std::cout << "model saved" << std::endl;
         
         abort();
         return true;
