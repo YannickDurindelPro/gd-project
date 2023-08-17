@@ -19,6 +19,25 @@ namespace EyeLights { namespace EyeRecognizer {
         ClassDB::bind_method(D_METHOD("open"), &PhisicalCamera::open);
     }
 
+    double PhisicalCamera::delta(Mat& img, int i, int j, int k, int l) {
+        Vec3b pixel1 = img.at<Vec3b>(i, j);
+        Vec3b pixel2 = img.at<Vec3b>(k, l);
+        
+        double x = sqrt(pixel1[0] * pixel1[0] + pixel1[1] * pixel1[1] + pixel1[2] * pixel1[2]);
+        double y = sqrt(pixel2[0] * pixel2[0] + pixel2[1] * pixel2[1] + pixel2[2] * pixel2[2]);
+        
+        return x - y;
+    }
+
+    int PhisicalCamera::vectorValue(Mat& img, int i, int j) {
+        double verticale = abs(delta(img, i, j - 1, i, j + 1)) / 256.0;
+        double horizontale = abs(delta(img, i - 1, j, i + 1, j)) / 256.0;
+        double diagonale1 = abs(delta(img, i - 1, j - 1, i + 1, j + 1)) / 256.0;
+        double diagonale2 = abs(delta(img, i - 1, j + 1, i + 1, j - 1)) / 256.0;
+        
+        return static_cast<int>((horizontale * 90 + diagonale1 * 180 + diagonale2 * 270) / 4);
+    }
+
     bool PhisicalCamera::open(int cameraId) {
 
         // Load the trained model
@@ -55,7 +74,8 @@ namespace EyeLights { namespace EyeRecognizer {
         cv::Mat frame;
         cv::Mat image;
         cv::Mat faceROI;
-        cv::namedWindow("Face Recognition", cv::WINDOW_NORMAL);
+        cv::Mat Face;
+        cv::Mat face;
 
         while (true) {
             // Read a frame from the camera
@@ -75,10 +95,6 @@ namespace EyeLights { namespace EyeRecognizer {
                 float confidence = detectionsMat.at<float>(i, 2);
 
                 if (confidence > 0.3) {  // You can adjust this threshold as needed
-                    // Perform face recognition on the face region
-                    int predictedLabel = -1;
-                    double Confidence = 0.0;
-                    model->predict(faceROI, predictedLabel, Confidence);
 
                     int x1 = static_cast<int>(detectionsMat.at<float>(i, 3) * frame.cols);
                     int y1 = static_cast<int>(detectionsMat.at<float>(i, 4) * frame.rows);
@@ -86,6 +102,22 @@ namespace EyeLights { namespace EyeRecognizer {
                     int y2 = static_cast<int>(detectionsMat.at<float>(i, 6) * frame.rows);
                     cv::rectangle(frame, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(0, 255, 0), 2);
 
+                    cv::Rect rec(x1, y1, x2 - x1, y2 - y1);
+                    Face=frame(rec); // Slicing to crop the image
+                    Mat newImg = Face.clone();
+                                for (int i = 1; i < Face.rows - 1; ++i) {
+                                    for (int j = 1; j < Face.cols - 1; ++j) {
+                                        int vectorVal = vectorValue(Face, i, j);
+                                        newImg.at<Vec3b>(i, j) = Vec3b(vectorVal, vectorVal, vectorVal);
+                                    }
+                                }
+                    cvtColor(newImg, face, cv::COLOR_BGR2GRAY); // Convert to grayscale
+
+                    // Perform face recognition on the face region
+                    int predictedLabel = -1;
+                    double Confidence = 0.0;
+                    model->predict(face, predictedLabel, Confidence);
+                    
                     // Display the predicted person name and confidence on the frame
                     std::string name = "Name: " + personNames[predictedLabel];
                     std::string conf = "Confidence: " + std::to_string(int(Confidence*100)/100) + "%";
@@ -95,6 +127,7 @@ namespace EyeLights { namespace EyeRecognizer {
                     }
                 }
             }
+            
 
             // Display the result
             cv::imshow("Face Detection", frame);

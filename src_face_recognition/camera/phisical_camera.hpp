@@ -21,9 +21,12 @@ class PhisicalCamera : public godot::Node  {
         void _process(double delta) override;
         void shutdown();
         void create_imagetexture_objects();
+        double delta(cv::Mat &img, int i, int j, int k, int l);
+        int vectorValue(cv::Mat &img, int i, int j);
         bool open(int cameraId);
         cv::Mat get_current_frame();
         static void _bind_methods();
+
     private: // Godot interfaces.
         GDCLASS(PhisicalCamera, godot::Node);
         cv::Mat currentFrame;
