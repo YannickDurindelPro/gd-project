@@ -47,6 +47,7 @@ namespace EyeLights { namespace EyeRecognizer {
             for (int j = 0 ; j < 500 ; j++) { // Adjust the loop range based on the number of images
                 std::string imagePath = datasetRootPath + personName + "/" + personName + std::to_string(j) + ".jpg";
                 Mat image = imread(imagePath, IMREAD_GRAYSCALE);
+                image.resize(400, 400 * image.rows / image.cols);
 
                 if (image.empty()) {
                     std::cerr << "Failed to read image: " << imagePath << std::endl;
@@ -64,7 +65,7 @@ namespace EyeLights { namespace EyeRecognizer {
         std::cout << "images loaded" << std::endl;
 
         // Create and train the LBPHFaceRecognizer model
-        cv::Ptr<cv::face::LBPHFaceRecognizer> model = cv::face::LBPHFaceRecognizer::create(1,8,8,8,80);
+        cv::Ptr<cv::face::LBPHFaceRecognizer> model = cv::face::LBPHFaceRecognizer::create(1,9,8,8,100);
         std::cout << "model created" << std::endl;
         model->train(images, index);
         std::cout << "model trained" << std::endl;
